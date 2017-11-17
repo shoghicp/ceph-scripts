@@ -93,7 +93,7 @@ def drain(osds, max_pgs_backfilling, max_latency, max_delta_weight, test_pool):
     sys.exit(0)
 
 def usage(code=0):
-  print 'ceph-gentle-drain -o <osd>[,<osd>,...] [-l <max_latency (default=50)>] [-b <max pgs backfilling (default=20)>] [-w <max incremental weight (default=2)>]'
+  print 'ceph-gentle-drain -o <osd>[,<osd>,...] [-l <max_latency (default=50)>] [-b <max pgs backfilling (default=20)>] [-w <max incremental weight (default=2)>] [-t <pool to test against (default=test)>]'
   sys.exit(code)
 
 def main(argv):
