@@ -24,9 +24,10 @@ def get_crush_weight(osd):
       return weight
   raise Exception('Undefined crush_weight for %s' % osd)
 
-def measure_latency():
+def measure_latency(test_pool):
   print "measure_latency: measuring 4kB write latency"
-  latency = commands.getoutput("rados -p test bench 10 write -t 1 -b 4096 2>/dev/null | egrep -i 'average latency' | awk '{print $3}'")
+  cmd = "rados -p %s bench 10 write -t 1 -b 4096 2>/dev/null | egrep -i 'average latency' | awk '{print $3}'" % (test_pool)
+  latency = commands.getoutput(cmd)
   latency_ms = 1000*float(latency) 
   print "measure_latency: current latency is %s" % latency_ms
   return latency_ms
@@ -44,7 +45,7 @@ def crush_reweight(osd, weight):
   out = commands.getoutput(cmd)
   print "crush_reweight: %s" % out
 
-def drain(osds, max_pgs_backfilling, max_latency, max_delta_weight):
+def drain(osds, max_pgs_backfilling, max_latency, max_delta_weight, test_pool):
 
   # check if there is any work to do:
   update_osd_tree()
@@ -65,7 +66,7 @@ def drain(osds, max_pgs_backfilling, max_latency, max_delta_weight):
     return
 
   # check the latency
-  latency = measure_latency()
+  latency = measure_latency(test_pool)
   if latency > max_latency:
     print "drain: latency is too high, trying again later"
     return
@@ -100,9 +101,10 @@ def main(argv):
   max_latency = 50
   max_pgs_backfilling = 20
   max_delta_weight = 2
+  test_pool = "test"
 
   try:
-    opts, args = getopt.getopt(argv,"ho:l:b:w:",["osds=","latency=","backfills=","weight="])
+    opts, args = getopt.getopt(argv,"ho:l:b:w:t:",["osds=","latency=","backfills=","weight=","testpool="])
   except getopt.GetoptError:
     usage(2)
   for opt, arg in opts:
@@ -116,6 +118,8 @@ def main(argv):
       max_pgs_backfilling = int(arg)
     elif opt in ("-w", "--weight"):
       max_delta_weight = float(arg)
+    elif opt in ("-t", "--testpool"):
+      test_pool = arg
   if not drain_osds:
     usage(2)
  
@@ -123,9 +127,10 @@ def main(argv):
   print 'Max latency (ms): ', max_latency
   print 'Max PGs backfilling: ', max_pgs_backfilling
   print 'Max delta weight:', max_delta_weight
+  print 'Test pool:', test_pool
 
   while(True):
-    drain(drain_osds, max_pgs_backfilling, max_latency, max_delta_weight)
+    drain(drain_osds, max_pgs_backfilling, max_latency, max_delta_weight, test_pool)
     print "main: sleeping 60s"
     time.sleep(60)
 
